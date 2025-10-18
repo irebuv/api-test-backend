@@ -1,0 +1,30 @@
+# Логи и кэш Laravel
+src/storage/logs/*
+src/storage/framework/cache/*
+src/storage/framework/sessions/*
+src/storage/framework/views/*
+# Laravel storage symbolic link
+src/public/storage
+# IDE / системные файлы
+.idea
+.vscode
+*.log
+
+# Composer зависимости
+src/vendor
+
+# Node модули (если есть)
+src/node_modules
+
+# Docker временные данные (если будешь подключать volume)
+docker/mysql
+docker/storage
+
+# Env файлы
+.env
+.env.*
+!*.example
+
+# Dump файлов БД
+*.sql
+*.dump
