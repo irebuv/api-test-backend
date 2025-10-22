@@ -1,66 +1,53 @@
-version: '3.8'
-
 services:
-  app:
-    build:
-      context: .
-      dockerfile: ./docker/php/Dockerfile
-    container_name: laravel-app
-    working_dir: /var/www
-    volumes:
-      - ./src:/var/www
-    depends_on:
-      - mysql
-    networks:
-      - laravel
+    app:
+        build:
+            context: .
+            dockerfile: ./docker/php/Dockerfile
+        working_dir: /var/www
+        volumes:
+            - ./src:/var/www
+        depends_on:
+            - mysql
+        networks: [laravel]
 
-  nginx:
-    image: nginx:latest
-    container_name: laravel-nginx
-    ports:
-      - "8000:80"
-    volumes:
-      - ./src:/var/www
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - app
-    networks:
-      - laravel
+    nginx:
+        image: nginx:latest
+        ports:
+            - "8000:80"
+        volumes:
+            - ./src:/var/www
+            - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on: [app]
+        networks: [laravel]
 
-  mysql:
-    image: mysql:8.0
-    container_name: laravel-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: shiki
-      MYSQL_USER: laravel
-      MYSQL_PASSWORD: laravel
-    ports:
-      - "3307:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - laravel
-    command: --default-authentication-plugin=mysql_native_password
+    mysql:
+        image: mysql:8.0
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: shiki
+            MYSQL_USER: laravel
+            MYSQL_PASSWORD: laravel
+        # если НЕ нужно подключаться с хоста — вообще убери ports:
+        ports:
+             - "3307:3306"
+        volumes:
+            - db_data:/var/lib/mysql
+        command: --default-authentication-plugin=mysql_native_password
+        networks: [laravel]
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: laravel-phpmyadmin
-    environment:
-      PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: root
-      UPLOAD_LIMIT: 256M
-    ports:
-      - "8081:80"
-    depends_on:
-      - mysql
-    networks:
-      - laravel
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin:latest
+        environment:
+            PMA_HOST: mysql
+            PMA_USER: root
+            PMA_PASSWORD: root
+        ports:
+            - "8081:80"
+        depends_on: [mysql]
+        networks: [laravel]
 
 networks:
-  laravel:
+    laravel: {}
 
 volumes:
-  db_data:
+    db_data: {}

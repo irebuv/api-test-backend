@@ -1,0 +1,28 @@
+# VCS / IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Логи/артефакты/дампы
+*.log
+*.sql
+*.sqlite
+
+# Конфиги окружения
+.env
+.env.*.local
+
+
+# Laravel кэши и данные, которые не нужны в образе
+src/storage/
+src/bootstrap/cache/
+src/public/storage/
+src/public/hot
+
+# Локальные vendor (в prod ставим в образ)
+src/vendor/
+
+# Docker локальные данные
+db_data/
+docker/mysql/init/
