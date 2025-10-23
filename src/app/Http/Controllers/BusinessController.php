@@ -69,7 +69,6 @@ class BusinessController extends Controller
         return response()->json([
             'error' => 'Failed to create project',
         ], 500);
-
     }
 
     public function markAsRead(Request $request)
@@ -120,7 +119,6 @@ class BusinessController extends Controller
             return response()->json([
                 'message' => 'Business created successfully',
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to create project',
@@ -171,7 +169,6 @@ class BusinessController extends Controller
                 'message' => 'Project updated successfully!',
                 'business' => $business,
             ], 200);
-
         } catch (\Exception $e) {
             Log::error($e->getMessage());
 
