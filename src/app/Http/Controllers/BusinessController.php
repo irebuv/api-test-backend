@@ -14,16 +14,46 @@ class BusinessController extends Controller
     public function index(Request $request)
     {
         $myProjects = $request->input('myProjects', 0);
+        $search = trim($request->input('search', ''));
+        $sort = trim((string) $request->input('sort', 'id'));
         $type = $request->input('type', 'all');
+
         if ($type == 'all') {
             $type = false;
         }
-        $businesses = Business::with('user')
-            ->when($myProjects, fn($q) => $q->where('user_id', $request->user()->id))
-            ->when($type, fn($q) => $q->where('type', $type))
-            ->orderByDesc('id')
-            ->paginate(8)
-            ->withQueryString();
+
+        $query = Business::query()
+            ->with('user')
+            ->when(
+                $myProjects && $request->user(),
+                fn($q) =>
+                $q->where('user_id', $request->user()->id)
+            )
+            ->when(
+                $type && $type !== 'all',
+                fn($q) =>
+                $q->where('type', $type)
+            )
+            ->when(
+                $search !== '',
+                fn($q) =>
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                })
+            );
+        logger($sort);
+        if ($sort === "popular") {
+            $query->withCount([
+                'orders as orders_count' => fn($q) => $q,
+            ])
+                ->orderByDesc('orders_count')
+                ->orderByDesc('id');
+        } else {
+            $query->orderByDesc($sort);
+        }
+
+        $businesses = $query->paginate(8)->appends($request->query());
         $types = Cache::remember('business_types', 10080, function () {
             return Business::distinct()->pluck('type');
         });
@@ -35,12 +65,15 @@ class BusinessController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         $unreadCount = $myRequests->where('is_read', false)->count();
+
+        $serverInfo = $search;
         return response()->json([
             'businesses' => $businesses,
             'myProjects' => (bool)$myProjects,
             'types' => $types,
             'myRequests' => $myRequests,
             'unreadCount' => $unreadCount,
+            'serverInfo' => $sort,
         ]);
     }
 

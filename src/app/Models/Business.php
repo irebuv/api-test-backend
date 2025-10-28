@@ -9,13 +9,17 @@ class Business extends Model
 {
     protected $table = 'businesses';
     protected $fillable = ['name', 'description', 'image', 'type', 'user_id'];
-
-    public function user(){
+    public function orders()
+    {
+        return $this->hasMany(\App\Models\Order::class, 'business_id');
+    }
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
     protected static function booted()
-{
-    static::saved(fn () => Cache::forget('business_types'));
-    static::deleted(fn () => Cache::forget('business_types'));
-}
+    {
+        static::saved(fn() => Cache::forget('business_types'));
+        static::deleted(fn() => Cache::forget('business_types'));
+    }
 }
