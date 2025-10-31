@@ -8,7 +8,15 @@ use Illuminate\Support\Facades\Cache;
 class Business extends Model
 {
     protected $table = 'businesses';
-    protected $fillable = ['name', 'description', 'image', 'type', 'user_id'];
+    protected $fillable = [
+        'name',
+        'description',
+        'type',
+        'user_id',
+        'image_original',
+        'image_thumb_webp',
+        'image_card_webp',
+    ];
     public function orders()
     {
         return $this->hasMany(\App\Models\Order::class, 'business_id');

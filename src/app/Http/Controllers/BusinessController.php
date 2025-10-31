@@ -7,7 +7,6 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class BusinessController extends Controller
 {
@@ -42,7 +41,6 @@ class BusinessController extends Controller
                         ->orWhere('description', 'like', "%{$search}%");
                 })
             );
-        logger($sort);
         if ($sort === "popular") {
             $query->withCount([
                 'orders as orders_count' => fn($q) => $q,
@@ -58,7 +56,7 @@ class BusinessController extends Controller
             return Business::distinct()->pluck('type');
         });
         $myRequests = Order::query()
-            ->select('orders.*', 'businesses.name as business_name', 'businesses.image as business_image')
+            ->select('orders.*', 'businesses.name as business_name', 'businesses.image_original as business_image')
             ->join('businesses', 'orders.business_id', '=', 'businesses.id')
             ->whereHas('business', fn($q) => $q
                 ->where('user_id', auth('api')->id()))
@@ -130,27 +128,30 @@ class BusinessController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:255',
             'type' => 'required|string|max:255',
-            // 'image' => 'nullable|mimes:png,jpg,gif,jpeg,webp|max:2048',
         ]);
-
         try {
-            $imagePath = null;
-
-            if ($request->hasFile('image')) {
-                $folders = date('Y') . '/' . date('m') . '/' . date('d');
-                $imagePath = $request->file('image')->store("images/businesses/{$folders}", "public");
-            }
 
             $business = Business::create([
                 "name" => $request->name,
                 "description" => $request->description,
-                "image" => $imagePath,
                 "type" => $request->type,
                 "user_id" => auth('api')->id(),
             ]);
 
             return response()->json([
-                'message' => 'Business created successfully',
+                'message'  => 'Business created successfully',
+                'business' => $business->fresh()->only([
+                    'id',
+                    'name',
+                    'description',
+                    'type',
+                    'image_original',
+                    'image_thumb_webp',
+                    'image_card_webp',
+                    'image_original_url',
+                    'image_thumb_url',
+                    'image_card_url',
+                ]),
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -173,7 +174,6 @@ class BusinessController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:255',
             'type' => 'required|string|max:255',
-            //'image' => 'nullable|mimes:png,jpg,gif,jpeg,webp|max:2048',
         ]);
 
         if (!$business || $business->user_id !== auth('api')->id()) {
@@ -182,15 +182,6 @@ class BusinessController extends Controller
             ], 403);
         }
         try {
-            if ($image = $request->file('image')) {
-                if ($business->image) {
-                    Storage::disk('public')->delete($business->image);
-                }
-
-                $folders = date('Y') . '/' . date('m') . '/' . date('d');
-                $image = $image->store("images/businesses/{$folders}", 'public');
-                $business->image = $image;
-            }
 
             $business->name = $request->name;
             $business->description = $request->description;
