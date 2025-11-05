@@ -7,6 +7,7 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class BusinessController extends Controller
 {
@@ -137,7 +138,7 @@ class BusinessController extends Controller
                 "type" => $request->type,
                 "user_id" => auth('api')->id(),
             ]);
-
+            sendTelegram("🆕 New business added: <b>{$request->name}</b>\nuser: <b>" . (auth('api')->user()->name ?? 'unknown') . "</b>");
             return response()->json([
                 'message'  => 'Business created successfully',
                 'business' => $business->fresh()->only([
@@ -205,15 +206,47 @@ class BusinessController extends Controller
 
     public function destroy(Business $business)
     {
-        if ($business->user_id === auth('api')->id()) {
+        if ($business->user_id !== auth('api')->id()) {
+            return response()->json(['message' => 'Unable to delete project!'], 403);
+        }
+
+        try {
+            $disk = 'public';
+
+            // 🧹 1️⃣ Delete images before removing DB record
+            $paths = array_filter([
+                $business->image_original,
+                $business->image_thumb_webp,
+                $business->image_card_webp,
+            ]);
+
+            if (!empty($paths)) {
+                Storage::disk($disk)->delete($paths);
+            }
+
+            // 🧹 2️⃣ Delete entire folder (e.g. images/businesses/YYYY/MM/DD/{id})
+            if (!empty($business->image_original)) {
+                $baseDir = dirname($business->image_original);
+                Storage::disk($disk)->deleteDirectory($baseDir);
+            }
+
+            // 🧾 3️⃣ Delete DB record
             $business->delete();
+
             return response()->json([
-                'message' => 'Project was successfully deleted!'
+                'message' => 'Project and its images were successfully deleted!',
             ], 200);
-        } else {
+        } catch (\Throwable $e) {
+            // 🧠 Log error for debugging
+            \Log::error('Business deletion failed', [
+                'business_id' => $business->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
-                'message' => 'Unable to delete project!'
-            ], 403);
+                'message' => 'An error occurred while deleting the project.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 }
